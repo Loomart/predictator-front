@@ -18,6 +18,22 @@ export default function AdminPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  const API = process.env.NEXT_PUBLIC_API_URL;
+
+  async function runSchedulerStart() {
+    await fetch(`${API}/admin/scheduler/start`, { method: "POST" });
+  }
+
+  async function runSchedulerStop() {
+    await fetch(`${API}/admin/scheduler/stop`, { method: "POST" });
+  }
+
+  async function getSchedulerStatus() {
+    const res = await fetch(`${API}/admin/scheduler/status`);
+    const data = await res.json();
+    console.log(data);
+  }
+
   const runAction = async (endpoint: string, actionName: string) => {
     setIsLoading(true);
     setMessage(null);
@@ -80,6 +96,24 @@ export default function AdminPage() {
           >
             {isLoading ? 'Ejecutando...' : 'Run Pipeline'}
           </button>
+          <button 
+            onClick={runSchedulerStart}
+            disabled={isLoading}
+            className="w-full bg-green-900 hover:bg-green-800 disabled:bg-gray-700 text-green-100 font-semibold py-3 px-6 rounded-lg border border-green-700 transition disabled:cursor-not-allowed"
+          >
+            Start Scheduler </button>
+          <button 
+            onClick={runSchedulerStop}
+            disabled={isLoading}
+            className="w-full bg-green-900 hover:bg-green-800 disabled:bg-gray-700 text-green-100 font-semibold py-3 px-6 rounded-lg border border-green-700 transition disabled:cursor-not-allowed"
+          >
+            Stop Scheduler</button>
+          <button 
+            onClick={getSchedulerStatus}
+            disabled={isLoading}
+            className="w-full bg-green-900 hover:bg-green-800 disabled:bg-gray-700 text-green-100 font-semibold py-3 px-6 rounded-lg border border-green-700 transition disabled:cursor-not-allowed"
+          >
+            Check Status</button>
         </div>
 
         {message && (
