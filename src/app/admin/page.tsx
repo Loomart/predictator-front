@@ -34,7 +34,7 @@ export default function AdminPage() {
     console.log(data);
   }
 
-  const runAction = async (endpoint: string, actionName: string) => {
+  const runAction = async (endpoint: string) => {
     setIsLoading(true);
     setMessage(null);
 
@@ -74,7 +74,7 @@ export default function AdminPage() {
 
         <div className="space-y-4">
           <button
-            onClick={() => runAction('run-sync', 'sync')}
+            onClick={() => runAction('run-sync')}
             disabled={isLoading}
             className="w-full bg-green-900 hover:bg-green-800 disabled:bg-gray-700 text-green-100 font-semibold py-3 px-6 rounded-lg border border-green-700 transition disabled:cursor-not-allowed"
           >
@@ -82,7 +82,7 @@ export default function AdminPage() {
           </button>
 
           <button
-            onClick={() => runAction('run-scanner', 'scanner')}
+            onClick={() => runAction('run-scanner')}
             disabled={isLoading}
             className="w-full bg-green-900 hover:bg-green-800 disabled:bg-gray-700 text-green-100 font-semibold py-3 px-6 rounded-lg border border-green-700 transition disabled:cursor-not-allowed"
           >
@@ -90,7 +90,7 @@ export default function AdminPage() {
           </button>
 
           <button
-            onClick={() => runAction('run-pipeline', 'pipeline')}
+            onClick={() => runAction('run-pipeline')}
             disabled={isLoading}
             className="w-full bg-green-900 hover:bg-green-800 disabled:bg-gray-700 text-green-100 font-semibold py-3 px-6 rounded-lg border border-green-700 transition disabled:cursor-not-allowed"
           >
