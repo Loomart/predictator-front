@@ -61,8 +61,9 @@ describe("frontend api client", () => {
     await expect(getMarkets()).rejects.toThrow("Error cargando mercados: 503");
   });
 
-  it("lanza error al importar api.ts sin NEXT_PUBLIC_API_URL", async () => {
+  it("lanza error al ejecutar una llamada sin NEXT_PUBLIC_API_URL", async () => {
     vi.stubEnv("NEXT_PUBLIC_API_URL", "");
-    await expect(import("./api")).rejects.toThrow("NEXT_PUBLIC_API_URL no está configurada");
+    const { getMarkets } = await import("./api");
+    await expect(getMarkets()).rejects.toThrow("NEXT_PUBLIC_API_URL no está configurada");
   });
 });

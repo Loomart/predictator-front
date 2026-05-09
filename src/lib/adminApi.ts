@@ -82,6 +82,89 @@ export type SchedulerStatus = {
   running: boolean;
 };
 
+export type RuntimeSwitches = {
+  filters: {
+    market_category_allowlist: string[];
+    market_title_include: string[];
+    market_external_id_allowlist: string[];
+  };
+  scanner: {
+    market_limit: number;
+    min_history: number;
+    wait_liquidity_threshold: number;
+    wait_noise_threshold: number;
+    wait_stability_threshold: number;
+    strong_enter_score_threshold: number;
+    strong_enter_momentum_threshold: number;
+    strong_enter_change_threshold: number;
+    enter_score_threshold: number;
+    enter_momentum_threshold: number;
+    enter_change_threshold: number;
+    watch_score_threshold: number;
+    watch_momentum_threshold: number;
+    avoid_score_threshold: number;
+  };
+};
+
+function debugEnter(method: string, meta?: string): number {
+  const startedAt = Date.now();
+  console.debug(`[adminApi] -> ${method}${meta ? ` ${meta}` : ""}`);
+  return startedAt;
+}
+
+function debugExit(method: string, startedAt: number, meta?: string): void {
+  const elapsedMs = Date.now() - startedAt;
+  console.debug(`[adminApi] <- ${method}${meta ? ` ${meta}` : ""} (${elapsedMs}ms)`);
+}
+
+function toApiError(status: number, detail?: string): Error {
+  if (detail) {
+    return new Error(`HTTP ${status}: ${detail}`);
+  }
+  return new Error(`HTTP ${status}`);
+}
+
+async function readErrorDetail(response: Response): Promise<string | undefined> {
+  const body = await response.json().catch(() => null);
+  if (!body || typeof body !== "object") {
+    return undefined;
+  }
+  const detail = (body as { detail?: unknown }).detail;
+  return typeof detail === "string" ? detail : undefined;
+}
+
+async function requestJson<T>(methodName: string, url: string, init?: RequestInit): Promise<T> {
+  const startedAt = debugEnter(methodName, url);
+  try {
+    const response = await fetch(url, init);
+    if (!response.ok) {
+      const detail = await readErrorDetail(response);
+      throw toApiError(response.status, detail);
+    }
+    const data = (await response.json()) as T;
+    debugExit(methodName, startedAt, `status=${response.status}`);
+    return data;
+  } catch (error) {
+    debugExit(methodName, startedAt, "error");
+    throw error;
+  }
+}
+
+async function requestVoid(methodName: string, url: string, init?: RequestInit): Promise<void> {
+  const startedAt = debugEnter(methodName, url);
+  try {
+    const response = await fetch(url, init);
+    if (!response.ok) {
+      const detail = await readErrorDetail(response);
+      throw toApiError(response.status, detail);
+    }
+    debugExit(methodName, startedAt, `status=${response.status}`);
+  } catch (error) {
+    debugExit(methodName, startedAt, "error");
+    throw error;
+  }
+}
+
 function ensureApiUrl(apiUrl: string | undefined): string {
   if (!apiUrl) {
     throw new Error("NEXT_PUBLIC_API_URL no está configurada");
@@ -91,19 +174,33 @@ function ensureApiUrl(apiUrl: string | undefined): string {
 
 export async function postAdminAction(apiUrl: string | undefined, endpoint: string): Promise<ActionResponse> {
   const base = ensureApiUrl(apiUrl);
-  const response = await fetch(`${base}/admin/${endpoint}`, {
+  return requestJson<ActionResponse>(`postAdminAction(${endpoint})`, `${base}/admin/${endpoint}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
   });
+}
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ detail: "Unknown error" }));
-    throw new Error(errorData.detail || `HTTP ${response.status}`);
-  }
-
-  return response.json();
+export async function postAdminActionWithParams(
+  apiUrl: string | undefined,
+  endpoint: string,
+  params: Record<string, string | number | undefined>,
+): Promise<ActionResponse> {
+  const base = ensureApiUrl(apiUrl);
+  const searchParams = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === "") return;
+    searchParams.set(key, String(value));
+  });
+  const query = searchParams.toString();
+  const suffix = query ? `?${query}` : "";
+  return requestJson<ActionResponse>(`postAdminActionWithParams(${endpoint})`, `${base}/admin/${endpoint}${suffix}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
 }
 
 export async function fetchTradingView(apiUrl: string | undefined): Promise<TradingViewData> {
@@ -163,26 +260,34 @@ export async function fetchTradingView(apiUrl: string | undefined): Promise<Trad
 
 export async function setTradingEnabled(apiUrl: string | undefined, enabled: boolean): Promise<void> {
   const base = ensureApiUrl(apiUrl);
-  await fetch(`${base}/admin/trading/${enabled ? "enable" : "disable"}`, { method: "POST" });
+  await requestVoid(
+    "setTradingEnabled",
+    `${base}/admin/trading/${enabled ? "enable" : "disable"}`,
+    { method: "POST" },
+  );
 }
 
 export async function resetExecutionCircuit(apiUrl: string | undefined): Promise<void> {
   const base = ensureApiUrl(apiUrl);
-  await fetch(`${base}/admin/execution/circuit-breaker/reset`, { method: "POST" });
+  await requestVoid("resetExecutionCircuit", `${base}/admin/execution/circuit-breaker/reset`, { method: "POST" });
 }
 
 export async function startScheduler(apiUrl: string | undefined): Promise<void> {
   const base = ensureApiUrl(apiUrl);
-  await fetch(`${base}/admin/scheduler/start`, { method: "POST" });
+  await requestVoid("startScheduler", `${base}/admin/scheduler/start`, { method: "POST" });
 }
 
 export async function stopScheduler(apiUrl: string | undefined): Promise<void> {
   const base = ensureApiUrl(apiUrl);
-  await fetch(`${base}/admin/scheduler/stop`, { method: "POST" });
+  await requestVoid("stopScheduler", `${base}/admin/scheduler/stop`, { method: "POST" });
 }
 
 export async function fetchSchedulerStatus(apiUrl: string | undefined): Promise<SchedulerStatus> {
   const base = ensureApiUrl(apiUrl);
-  const response = await fetch(`${base}/admin/scheduler/status`, { cache: "no-store" });
-  return response.json();
+  return requestJson<SchedulerStatus>("fetchSchedulerStatus", `${base}/admin/scheduler/status`, { cache: "no-store" });
+}
+
+export async function fetchRuntimeSwitches(apiUrl: string | undefined): Promise<RuntimeSwitches> {
+  const base = ensureApiUrl(apiUrl);
+  return requestJson<RuntimeSwitches>("fetchRuntimeSwitches", `${base}/admin/runtime-switches`, { cache: "no-store" });
 }
