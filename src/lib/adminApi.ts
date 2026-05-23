@@ -104,6 +104,18 @@ export type RuntimeSwitches = {
     watch_momentum_threshold: number;
     avoid_score_threshold: number;
   };
+  risk?: {
+    min_liquidity: number;
+    max_spread: number;
+    max_open_orders: number;
+    max_open_orders_per_market: number;
+    max_position_abs_per_market: number;
+    max_total_abs_position: number;
+    max_orders_per_day: number;
+    max_traded_quantity_per_day: number;
+    base_quantity: number;
+    max_edge: number;
+  };
 };
 
 function debugEnter(method: string, meta?: string): number {
