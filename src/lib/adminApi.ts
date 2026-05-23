@@ -124,6 +124,23 @@ function toApiError(status: number, detail?: string): Error {
   return new Error(`HTTP ${status}`);
 }
 
+function buildAdminHeaders(headers?: HeadersInit): Headers {
+  const merged = new Headers(headers);
+  const key = process.env.NEXT_PUBLIC_ADMIN_API_KEY;
+  const headerName = process.env.NEXT_PUBLIC_ADMIN_API_KEY_HEADER || "X-Admin-API-Key";
+  if (key && key.trim().length > 0) {
+    merged.set(headerName, key.trim());
+  }
+  return merged;
+}
+
+function withAdminAuth(init?: RequestInit): RequestInit {
+  return {
+    ...(init || {}),
+    headers: buildAdminHeaders(init?.headers),
+  };
+}
+
 async function readErrorDetail(response: Response): Promise<string | undefined> {
   const body = await response.json().catch(() => null);
   if (!body || typeof body !== "object") {
@@ -174,12 +191,12 @@ function ensureApiUrl(apiUrl: string | undefined): string {
 
 export async function postAdminAction(apiUrl: string | undefined, endpoint: string): Promise<ActionResponse> {
   const base = ensureApiUrl(apiUrl);
-  return requestJson<ActionResponse>(`postAdminAction(${endpoint})`, `${base}/admin/${endpoint}`, {
+  return requestJson<ActionResponse>(`postAdminAction(${endpoint})`, `${base}/admin/${endpoint}`, withAdminAuth({
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-  });
+  }));
 }
 
 export async function postAdminActionWithParams(
@@ -195,24 +212,24 @@ export async function postAdminActionWithParams(
   });
   const query = searchParams.toString();
   const suffix = query ? `?${query}` : "";
-  return requestJson<ActionResponse>(`postAdminActionWithParams(${endpoint})`, `${base}/admin/${endpoint}${suffix}`, {
+  return requestJson<ActionResponse>(`postAdminActionWithParams(${endpoint})`, `${base}/admin/${endpoint}${suffix}`, withAdminAuth({
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-  });
+  }));
 }
 
 export async function fetchTradingView(apiUrl: string | undefined): Promise<TradingViewData> {
   const base = ensureApiUrl(apiUrl);
   const [statusRes, execRes, circuitRes, summaryRes, ordersRes, positionsRes, positionsDetailRes] = await Promise.all([
-    fetch(`${base}/admin/trading/status`, { cache: "no-store" }),
-    fetch(`${base}/admin/execution/status`, { cache: "no-store" }),
-    fetch(`${base}/admin/execution/circuit-breaker`, { cache: "no-store" }),
-    fetch(`${base}/admin/trading/summary`, { cache: "no-store" }),
+    fetch(`${base}/admin/trading/status`, withAdminAuth({ cache: "no-store" })),
+    fetch(`${base}/admin/execution/status`, withAdminAuth({ cache: "no-store" })),
+    fetch(`${base}/admin/execution/circuit-breaker`, withAdminAuth({ cache: "no-store" })),
+    fetch(`${base}/admin/trading/summary`, withAdminAuth({ cache: "no-store" })),
     fetch(`${base}/orders`, { cache: "no-store" }),
     fetch(`${base}/positions`, { cache: "no-store" }),
-    fetch(`${base}/admin/trading/positions`, { cache: "no-store" }),
+    fetch(`${base}/admin/trading/positions`, withAdminAuth({ cache: "no-store" })),
   ]);
 
   let tradingEnabled: boolean | null = null;
@@ -263,31 +280,43 @@ export async function setTradingEnabled(apiUrl: string | undefined, enabled: boo
   await requestVoid(
     "setTradingEnabled",
     `${base}/admin/trading/${enabled ? "enable" : "disable"}`,
-    { method: "POST" },
+    withAdminAuth({ method: "POST" }),
   );
 }
 
 export async function resetExecutionCircuit(apiUrl: string | undefined): Promise<void> {
   const base = ensureApiUrl(apiUrl);
-  await requestVoid("resetExecutionCircuit", `${base}/admin/execution/circuit-breaker/reset`, { method: "POST" });
+  await requestVoid(
+    "resetExecutionCircuit",
+    `${base}/admin/execution/circuit-breaker/reset`,
+    withAdminAuth({ method: "POST" }),
+  );
 }
 
 export async function startScheduler(apiUrl: string | undefined): Promise<void> {
   const base = ensureApiUrl(apiUrl);
-  await requestVoid("startScheduler", `${base}/admin/scheduler/start`, { method: "POST" });
+  await requestVoid("startScheduler", `${base}/admin/scheduler/start`, withAdminAuth({ method: "POST" }));
 }
 
 export async function stopScheduler(apiUrl: string | undefined): Promise<void> {
   const base = ensureApiUrl(apiUrl);
-  await requestVoid("stopScheduler", `${base}/admin/scheduler/stop`, { method: "POST" });
+  await requestVoid("stopScheduler", `${base}/admin/scheduler/stop`, withAdminAuth({ method: "POST" }));
 }
 
 export async function fetchSchedulerStatus(apiUrl: string | undefined): Promise<SchedulerStatus> {
   const base = ensureApiUrl(apiUrl);
-  return requestJson<SchedulerStatus>("fetchSchedulerStatus", `${base}/admin/scheduler/status`, { cache: "no-store" });
+  return requestJson<SchedulerStatus>(
+    "fetchSchedulerStatus",
+    `${base}/admin/scheduler/status`,
+    withAdminAuth({ cache: "no-store" }),
+  );
 }
 
 export async function fetchRuntimeSwitches(apiUrl: string | undefined): Promise<RuntimeSwitches> {
   const base = ensureApiUrl(apiUrl);
-  return requestJson<RuntimeSwitches>("fetchRuntimeSwitches", `${base}/admin/runtime-switches`, { cache: "no-store" });
+  return requestJson<RuntimeSwitches>(
+    "fetchRuntimeSwitches",
+    `${base}/admin/runtime-switches`,
+    withAdminAuth({ cache: "no-store" }),
+  );
 }

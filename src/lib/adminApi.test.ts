@@ -32,6 +32,18 @@ describe("adminApi", () => {
     );
   });
 
+  it("postAdminAction adjunta header admin cuando está configurado", async () => {
+    vi.stubEnv("NEXT_PUBLIC_ADMIN_API_KEY", "secret-key");
+    vi.stubEnv("NEXT_PUBLIC_ADMIN_API_KEY_HEADER", "X-Admin-API-Key");
+    const fetchMock = mockFetchSequence([{ ok: true, body: { status: "ok", action: "sync", message: "done" } }]);
+    const { postAdminAction } = await import("./adminApi");
+
+    await postAdminAction("http://localhost:8000", "run-sync");
+    const [, init] = fetchMock.mock.calls[0];
+    const headers = init?.headers as Headers;
+    expect(headers.get("X-Admin-API-Key")).toBe("secret-key");
+  });
+
   it("postAdminAction lanza error con detail del backend", async () => {
     mockFetchSequence([{ ok: false, status: 400, body: { detail: "bad request" } }]);
     const { postAdminAction } = await import("./adminApi");

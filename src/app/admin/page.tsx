@@ -20,12 +20,6 @@ import {
   type TradingSummary,
 } from '@/lib/adminApi';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
-if (!API_URL) {
-  throw new Error("NEXT_PUBLIC_API_URL no está configurada");
-}
-
 export default function AdminPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -128,7 +122,7 @@ export default function AdminPage() {
     setMessage(null);
 
     try {
-      const data = await postAdminAction(API_URL, endpoint);
+      const data = await postAdminAction(API, endpoint);
       setMessage(`✅ ${data.action.toUpperCase()}: ${data.message}`);
     } catch (error) {
       setMessage(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -163,7 +157,7 @@ export default function AdminPage() {
     setIsLoading(true);
     setMessage(null);
     try {
-      const data = await postAdminActionWithParams(API_URL, endpoint, withConfigParams);
+      const data = await postAdminActionWithParams(API, endpoint, withConfigParams);
       setMessage(`✅ ${data.action.toUpperCase()}: ${data.message}`);
     } catch (error) {
       setMessage(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -176,6 +170,10 @@ export default function AdminPage() {
     void (async () => {
       try {
         setIsLoading(true);
+        if (!API) {
+          setMessage('❌ NEXT_PUBLIC_API_URL no está configurada');
+          return;
+        }
         await Promise.all([refreshTrading(), getSchedulerStatus(), refreshRuntimeSwitches()]);
       } catch (error) {
         setMessage(`❌ Error inicializando dashboard: ${error instanceof Error ? error.message : 'Unknown error'}`);
