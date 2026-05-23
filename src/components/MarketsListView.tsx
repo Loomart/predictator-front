@@ -19,6 +19,16 @@ import { deleteMarket, type Market, type MarketSnapshot, type Signal } from "../
 
 type RecommendationLevel = "green" | "yellow" | "red";
 const TABLE_PREFS_KEY = "markets_table_prefs_v1";
+type RiskFilter = "all" | RecommendationLevel;
+
+type TablePrefs = {
+  search: string;
+  riskFilter: RiskFilter;
+  hasPriceOnly: boolean;
+  sorting: SortingState;
+  columnVisibility: VisibilityState;
+  pagination: PaginationState;
+};
 
 type DashboardRow = {
   id: number;
@@ -71,15 +81,8 @@ function fmt(value: number | null): string {
   return value.toFixed(4);
 }
 
-function loadPrefs(): {
-  search: string;
-  riskFilter: "all" | RecommendationLevel;
-  hasPriceOnly: boolean;
-  sorting: SortingState;
-  columnVisibility: VisibilityState;
-  pagination: PaginationState;
-} {
-  const defaults = {
+function loadPrefs(): TablePrefs {
+  const defaults: TablePrefs = {
     search: "",
     riskFilter: "all" as const,
     hasPriceOnly: false,
@@ -91,13 +94,12 @@ function loadPrefs(): {
   try {
     const raw = window.localStorage.getItem(TABLE_PREFS_KEY);
     if (!raw) return defaults;
-    const parsed = JSON.parse(raw) as Partial<typeof defaults>;
+    const parsed = JSON.parse(raw) as Partial<TablePrefs>;
     return {
       search: typeof parsed.search === "string" ? parsed.search : defaults.search,
-      riskFilter:
-        parsed.riskFilter === "green" || parsed.riskFilter === "yellow" || parsed.riskFilter === "red" || parsed.riskFilter === "all"
-          ? parsed.riskFilter
-          : defaults.riskFilter,
+      riskFilter: parsed.riskFilter === "green" || parsed.riskFilter === "yellow" || parsed.riskFilter === "red" || parsed.riskFilter === "all"
+        ? parsed.riskFilter
+        : defaults.riskFilter,
       hasPriceOnly: typeof parsed.hasPriceOnly === "boolean" ? parsed.hasPriceOnly : defaults.hasPriceOnly,
       sorting: Array.isArray(parsed.sorting) ? (parsed.sorting as SortingState) : defaults.sorting,
       columnVisibility:
