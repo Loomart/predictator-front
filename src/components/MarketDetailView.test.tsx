@@ -16,6 +16,8 @@ vi.mock("next/link", () => {
   };
 });
 
+
+
 describe("MarketDetailView", () => {
   it("muestra estados vacíos de snapshots y señales", () => {
     const market: MarketDetail = {

@@ -2,12 +2,18 @@ import { getMarketById } from "@/lib/api";
 import { MarketDetailView } from "@/components/MarketDetailView";
 
 type PageProps = {
-  params: Promise<{ id: string }>;
+  params: { id: string };
 };
 
 export default async function MarketDetailPage({ params }: PageProps) {
-  const { id } = await params;
-  const market = await getMarketById(id);
+  let market;
+  try {
+    const { id } = params;
+    market = await getMarketById(id);
+  } catch (error) {
+    console.error('Error fetching market:', error);
+    return <div>Error loading market</div>;
+  }
 
   return <MarketDetailView market={market} />;
 }
